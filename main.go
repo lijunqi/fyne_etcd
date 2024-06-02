@@ -130,7 +130,7 @@ func main() {
 	a := app.New()
 	w := a.NewWindow("FyneETCD")
 
-	toolbar := makeToolBar()
+	toolbar := makeToolBar(w)
 
 	left := makeList()
 	//kvTable := makeTable(&w)
