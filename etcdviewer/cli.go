@@ -1,4 +1,4 @@
-package etcdcli
+package etcdviewer
 
 import (
 	"context"
@@ -9,17 +9,19 @@ import (
 )
 
 type EtcdObj struct {
-	cfg clientv3.Config
+	//cfg clientv3.Config
+	endpoints []string
 }
 
 func (eo *EtcdObj) ListAllV3() ([][]string, error) {
 	var res [][]string
-	eo.cfg = clientv3.Config{
-		Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
+	cfg := clientv3.Config{
+		//Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
+		Endpoints:   eo.endpoints,
 		DialTimeout: 5 * time.Second,
 	}
 
-	cli, err := clientv3.New(eo.cfg)
+	cli, err := clientv3.New(cfg)
 	if err != nil {
 		// handle error!
 		fmt.Printf("xxx Error new client: %v\n", err)

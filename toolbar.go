@@ -36,6 +36,21 @@ func makeToolBar(w fyne.Window) *widget.Toolbar {
 					rememberText = "and remember this login"
 				}
 
+				ETCDViewer.AddHost(hostName.Text)
+				ETCDViewer.HostList.Refresh()
+				ETCDViewer.Tabs.Refresh()
+
+				/*
+				etcdObj := EtcdObj{[]string{hostName}}
+				data, err := etcdObj.ListAllV3()
+				if err != nil {
+					fmt.Printf("xxx Error: %v\n", err)
+				} else {
+					ETCDViewer.Tabs.BaseWidget.ExtendBaseWidget(ETCDViewer.Tabs)
+					ETCDViewer.Tabs.Append(container.NewTabItem(hostname, makeTable(data)))
+				}
+				*/
+
 				log.Println("Host:", hostName.Text, "Port:", port.Text, rememberText)
 			}, w)
 			newSessionFormDialog.Resize(fyne.NewSize(400, 200))
