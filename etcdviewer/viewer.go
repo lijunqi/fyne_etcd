@@ -3,15 +3,19 @@ package etcdviewer
 import (
 	"fmt"
 	"image/color"
+	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/validation"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
 type EtcdViewer struct {
+	menu     *fyne.MainMenu
 	toolbar  *widget.Toolbar
 	Tabs     *container.AppTabs
 	HostList *widget.List
@@ -63,7 +67,7 @@ func (v *EtcdViewer) AddHost(hostname string) {
 
 func (v *EtcdViewer) MakeAppTabs(_ fyne.Window) fyne.CanvasObject {
 	if len(v.hostNames) == 0 {
-		return &container.AppTabs{}
+		return v.Tabs
 	}
 
 	etcdObj := EtcdObj{[]string{v.hostNames[0]}}
@@ -71,11 +75,9 @@ func (v *EtcdViewer) MakeAppTabs(_ fyne.Window) fyne.CanvasObject {
 	if err != nil {
 		fmt.Printf("xxx Error: %v\n", err)
 		//dialog.ShowError(err, *w)
-		return &container.AppTabs{}
+		return v.Tabs
 	}
 
-	//v.Tabs := &container.AppTabs{}
-	v.Tabs.BaseWidget.ExtendBaseWidget(v.Tabs)
 	for _, hostname := range v.hostNames {
 		v.Tabs.Append(container.NewTabItem(hostname, makeTable(data)))
 	}
@@ -91,15 +93,6 @@ func (v *EtcdViewer) MakeAppTabs(_ fyne.Window) fyne.CanvasObject {
 }
 
 func makeTable(data [][]string) *widget.Table {
-
-	//etcdObj := etcdcli.EtcdObj{}
-	//data, err := etcdObj.ListAllV3()
-	//if err != nil {
-	//	fmt.Printf("xxx Error: %v\n", err)
-	//	dialog.ShowError(err, *w)
-	//	return nil
-	//}
-
 	table := widget.NewTable(
 		func() (int, int) {
 			return len(data), len(data[0])+1 // +1 for 1st col(sequence number col)
@@ -126,4 +119,57 @@ func makeTable(data [][]string) *widget.Table {
 	table.SetColumnWidth(1, 200) // Set 2nd ~ last columns width
 
 	return table
+}
+
+func (v *EtcdViewer) MakeToolBar(w fyne.Window) *widget.Toolbar {
+	v.toolbar = widget.NewToolbar(
+		widget.NewToolbarAction(theme.ContentAddIcon(), func ()  {
+			hostName := widget.NewEntry()
+			hostName.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, "Please input hostname or IP.")
+			hostName.Text = "localhost"
+			port := widget.NewEntry()
+			port.Validator = validation.NewRegexp(`^[0-9]+$`, "Please input port number.")
+			port.Text = "2379"
+			remember := false
+			hostForm := widget.NewFormItem("Hostname/IP", hostName)
+			items := []*widget.FormItem{
+				hostForm,
+				widget.NewFormItem("Port", port),
+				widget.NewFormItem("Remember me", widget.NewCheck("", func(checked bool) {
+					remember = checked
+				})),
+			}
+
+			newSessionFormDialog := dialog.NewForm("New session...", "Open", "Cancel", items, func(b bool) {
+				if !b {
+					return
+				}
+				var rememberText string
+				if remember {
+					rememberText = "and remember this login"
+				}
+
+				v.AddHost(hostName.Text)
+				v.HostList.Refresh()
+
+				endpoint := fmt.Sprintf("%s:%s", hostName.Text, port.Text)
+				etcdObj := EtcdObj{[]string{endpoint}}
+				data, err := etcdObj.ListAllV3()
+				if err != nil {
+					fmt.Printf("xxx Error: %v\n", err)
+				} else {
+					v.Tabs.Append(container.NewTabItem(hostName.Text, makeTable(data)))
+					v.Tabs.Refresh()
+					fmt.Println("Refresh Tabs")
+				}
+
+				log.Println("Host:", hostName.Text, "Port:", port.Text, rememberText)
+			}, w)
+			newSessionFormDialog.Resize(fyne.NewSize(400, 200))
+			newSessionFormDialog.Show()
+		}),
+		widget.NewToolbarSpacer(),
+		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {}),
+	)
+	return v.toolbar
 }

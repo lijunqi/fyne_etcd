@@ -33,13 +33,19 @@ var dataSet = map[string] [][]string {
 
 var ETCDViewer = etcdviewer.EtcdViewer{}
 
+func init() {
+	ETCDViewer.Tabs = &container.AppTabs{}
+	ETCDViewer.Tabs.BaseWidget.ExtendBaseWidget(ETCDViewer.Tabs)
+}
 
 
 func main() {
 	a := app.New()
 	w := a.NewWindow("FyneETCD")
 
-	toolbar := makeToolBar(w)
+	w.SetMainMenu(ETCDViewer.MakeMenu())
+
+	toolbar := ETCDViewer.MakeToolBar(w)
 
 	left := ETCDViewer.MakeHostList()
 	//kvTable := makeTable(&w)
